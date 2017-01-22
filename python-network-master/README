@@ -1,0 +1,134 @@
+python-network
+==============
+
+Easy tcp, unix socket and avahi networking from python.
+
+This module provides 4 clases for networking support from Python:
+
+Socket
+Server
+
+Additionally, there are two convenience functions, bgloop and fgloop, which
+will enter the glib main loop.  Before that, bgloop will fork, so it returns
+control of the terminal to the calling application.  When starting servers this
+is useful: it will only return after the server is running, so there is no race
+condition for "the server was started, but not accepting connections yet".
+
+Instances of the Socket class are the connection objects. Server objects wait
+for connections and create the corresponding sockets as calls come in.
+
+Socket addresses can have several types. For connecting (client side), they may
+be:
+
+port		connect to port on localhost.
+host:port	connect to port on host.
+service|	connect to first avahi service with name (strictly,
+		_service._tcp).
+service|regex	connect to the first avahi service for which the long name
+		matches regular expression.
+/path/to/socket	connect to a unix domain socket. The name must include at least
+		one forward slash.
+
+For listening (server side), they may be:
+port			listen on port on localhost.
+service|name		listen on random port, publish service with long name.
+service|name|port	listen on port, publish avahi service.
+/path/to/socket		listen on a unix domain socket, which must not exist.
+			The name must include at least one forward slash.
+
+In all cases, port may be a number or a service name from /etc/services.
+
+Interface:
+
+s = network.Socket (address, tls = True, disconnect_cb = None)
+	# Create a socket, connect to address.
+	# If tls is True, TLS will be used to create a secure socket.
+	# If disconnect_cb is a function, it is called (with leftover data as
+	# 	argument) when the socket is closed.  If not set, it will
+	# 	raise EOFError when the socket closes.
+s.disconnect_cb(cb)
+	# Set or change disconnect_cb.  Set to None to raise EOFError on close.
+s.close()
+	# Close connection.
+s.send(data)
+	# Send a string of data.
+data = s.recv(maxsize = 4096)
+	# Receive at most maxsize bytes.
+s.read(callback, maxsize = 4096)
+	# Let the main loop wait for data, read it, and call the callback when it arrives.
+s.rawread(callback)
+	# Like read, but don't read the data.
+s.readlines(callback, maxsize = 4096):
+	# Like read, but the data is buffered and the callback is called once
+	# per received line ('\n'-separated).
+	# The newline is not passed to the callback.
+data = s.unread()
+	# Stop read callback; return any unparsed data from the readlines buffer.
+
+s = network.Server(port, obj, address = '', backlog = 5, tls = None, disconnect_cb = None)
+	# Start a server. When a new connection is accepted, obj is called with
+	# the resulting socket.  You will normally want obj to be a class, so a
+	# new object is constructed for each connection.  In its constructor,
+	# you should then set a read callback.
+	# address is the address to listen on (default everything; it can be
+	# set to '0.0.0.0' to disable IPv6, to '127.0.0.1' to limit connections
+	# to localhost, etc.)
+	# backlog is the number of connections to allow in the queue while the
+	# server didn't accept them yet.
+	# If tls is False, the connection will not be encrypted.  Otherwise it
+	# will be; a certificate will be created if there is none in the
+	# configuration directory (normally ~/.local/share/network/*/).
+s.disconnect_cb(cb)
+	# Set a new disconnect callback.
+s.close()
+	# Stop the server.
+
+Callback signatures:
+Socket.read: cb(bytes)
+Socket.rawread: cb()
+Socket.readlines: cb(str)	# does not contain newline.
+Server.obj: cb(Socket)
+
+When a socket is disconnected, the remote end calls disconnect_cb if set,
+otherwise it raises EOFError.  Disconnect_cb can be unset by calling it with
+None.
+
+All callbacks (listening, client receiving) are triggered by the glib main
+loop, so that must be running to receive the events.  {fg,bg}loop() are
+provided so programs using this module don't need to import glib itself.  Gtk
+uses the same main loop, so any gtk program will not need to do anything
+special.
+
+The server and avahi code will be disabled if the respective modules are not
+available.
+
+Simple example for the servers.
+------------------------------------------------------------------------------
+#!/usr/bin/env python
+# example for network servers.
+import network
+
+class Object:
+	def __init__(self, socket):
+		self.socket = socket
+		self.socket.send('Welcome to this server!')
+		self.socket.readlines(line)
+	def line(self, l):
+		print('data received: %s' % l)
+		self.socket.send('This is a reply.')
+
+server = network.Server(1234, Object)
+
+network.fgloop()
+------------------------------------------------------------------------------
+
+And for the clients.
+------------------------------------------------------------------------------
+#!/usr/bin/env python
+# example for network clients.
+import network
+
+client = network.Socket('localhost:1234')
+client.send('This is data.')
+print('The server replied: %s' % client.recv())
+------------------------------------------------------------------------------

@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME = fhs
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_build:
+	dh_auto_build
+	doxygen config.doxygen
+	rm doxygen-output/html/jquery.js
+	ln -s /usr/share/javascript/jquery/jquery.js doxygen-output/html/
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf doxygen-output

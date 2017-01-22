@@ -1,0 +1,11 @@
+python-websocketd (0.2-1) UNRELEASED; urgency=medium
+
+  * New release.
+
+ -- Bas Wijnen <wijnen@debian.org>  Mon, 30 Nov 2015 11:28:41 -0500
+
+python-websocketd (0.1-1) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Bas Wijnen <wijnen@debian.org>  Mon, 30 Nov 2015 11:28:34 -0500

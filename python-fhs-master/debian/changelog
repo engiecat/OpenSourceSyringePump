@@ -1,0 +1,11 @@
+python-fhs (0.2-1) UNRELEASED; urgency=medium
+
+  * New release.
+
+ -- Bas Wijnen <wijnen@debian.org>  Mon, 30 Nov 2015 11:24:26 -0500
+
+python-fhs (0.1-1) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Bas Wijnen <wijnen@debian.org>  Mon, 30 Nov 2015 11:24:09 -0500
